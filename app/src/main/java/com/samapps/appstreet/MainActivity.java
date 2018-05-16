@@ -1,12 +1,18 @@
 package com.samapps.appstreet;
 
 import android.app.ProgressDialog;
+import android.content.Context;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AbsListView;
 import android.widget.EditText;
 import android.widget.GridView;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -20,11 +26,23 @@ import com.google.gson.Gson;
 
 import org.json.JSONObject;
 
-public class MainActivity extends AppCompatActivity {
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.List;
+
+public class MainActivity extends AppCompatActivity implements AbsListView.OnScrollListener,GridAdapter.Callback {
 
     String FlickrQuery_url = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
-    String FlickrQuery_per_page = "&per_page=10";
+    String FlickrQuery_per_page = "&per_page=12";
     String FlickrQuery_nojsoncallback = "&nojsoncallback=1";
+    String FlickrQuery_page = "&page=";
     String FlickrQuery_format = "&format=json";
     String FlickrQuery_tag = "&tags=";
     String FlickrQuery_key = "&api_key=d8ac26169e4f789e882e0112e7cfce04";
@@ -33,12 +51,18 @@ public class MainActivity extends AppCompatActivity {
     EditText editText;
     int page=1;
     String TAG=MainActivity.class.getName();
+    ImageResponse imageResponse;
+    GridAdapter gridAdapter;
+    boolean isLoading=false;
+    List<Photo> photo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        photo = new ArrayList<>();
         gridView = findViewById(R.id.gridview);
+        gridView.setNumColumns(2);
         editText = findViewById(R.id.edit);
 
         (findViewById(R.id.search)).setOnClickListener(new View.OnClickListener() {
@@ -48,10 +72,40 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+        gridView.setOnScrollListener(this);
+        gridAdapter=new GridAdapter(photo,MainActivity.this);
+        gridAdapter.setCallback(this);
+        gridView.setAdapter(gridAdapter);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main, menu);//Menu Resource, Menu
+        return true;
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.item2:
+                Toast.makeText(getApplicationContext(),"Column 2 Selected",Toast.LENGTH_LONG).show();
+                gridView.setNumColumns(2);
+                return true;
+            case R.id.item3:
+                Toast.makeText(getApplicationContext(),"Column 3 Selected",Toast.LENGTH_LONG).show();
+                gridView.setNumColumns(3);
+                return true;
+            case R.id.item4:
+                Toast.makeText(getApplicationContext(),"Column 4 Selected", Toast.LENGTH_LONG).show();
+                gridView.setNumColumns(4);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     void callFlickr(){
-        String url = FlickrQuery_url+FlickrQuery_per_page+FlickrQuery_nojsoncallback+page+FlickrQuery_format+FlickrQuery_tag+editText.getText().toString()+FlickrQuery_key;
+        String url = FlickrQuery_url+FlickrQuery_per_page+FlickrQuery_nojsoncallback+FlickrQuery_page+page+FlickrQuery_format+FlickrQuery_tag+editText.getText().toString()+FlickrQuery_key;
 
         final ProgressDialog pDialog = new ProgressDialog(this);
         pDialog.setMessage("Loading...");
@@ -62,10 +116,15 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onResponse(String response) {
-                Log.d(TAG, response.toString());
-                ImageResponse imageResponse = new Gson().fromJson(response.toString(),ImageResponse.class);
-                Log.e(TAG, imageResponse.getPhotos().getPhoto().get(0).getTitle());
+                Log.d(TAG, response);
+                isLoading=false;
+                imageResponse = new Gson().fromJson(response,ImageResponse.class);
+                photo.addAll(imageResponse.getPhotos().getPhoto());
+                page++;
+                gridAdapter.notifyDataSetChanged();
+                //Log.e(TAG, imageResponse.getPhotos().getPhoto().get(0).getTitle());
                 pDialog.hide();
+
 
             }
         }, new Response.ErrorListener() {
@@ -83,4 +142,75 @@ public class MainActivity extends AppCompatActivity {
         Volley.newRequestQueue(this).add(strReq);
     }
 
+    @Override
+    public void onScrollStateChanged(AbsListView view, int scrollState) {
+
+    }
+
+    @Override
+    public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+        if (totalItemCount > 0) {
+            int lastVisibleItem = firstVisibleItem + visibleItemCount;
+            Log.e(TAG,"first item "+firstVisibleItem+" visible count "+visibleItemCount+" total "+totalItemCount);
+            if (!isLoading &&  (lastVisibleItem == totalItemCount)) {
+                isLoading = true;
+                //callFlickr();
+                //load more items--
+                Log.e(TAG,"loading items "+page);
+
+                //isLoading=false;
+            }
+        }
+    }
+
+    public File getCacheFolder(Context context) {
+        File cacheDir = null;
+        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+            cacheDir = new File(Environment.getExternalStorageDirectory(), "cachefolder");
+            if(!cacheDir.isDirectory()) {
+                cacheDir.mkdirs();
+            }
+        }
+
+        if(!cacheDir.isDirectory()) {
+            cacheDir = context.getCacheDir(); //get system cache folder
+        }
+
+        return cacheDir;
+    }
+
+    void storeinCache(String path, String id){
+        URL wallpaperURL = null;
+        try {
+            wallpaperURL = new URL(path);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        try {
+            URLConnection connection = wallpaperURL.openConnection();
+            InputStream inputStream = new BufferedInputStream(wallpaperURL.openStream(), 10240);
+            File cacheDir = getCacheFolder(MainActivity.this);
+            File cacheFile = new File(cacheDir, id+".jpg");
+            Log.e(TAG,"path "+cacheFile.getAbsolutePath());
+            FileOutputStream outputStream = new FileOutputStream(cacheFile);
+
+            byte buffer[] = new byte[1024];
+            int dataSize;
+            int loadedSize = 0;
+            while ((dataSize = inputStream.read(buffer)) != -1) {
+                loadedSize += dataSize;
+                outputStream.write(buffer, 0, dataSize);
+            }
+
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @Override
+    public void storeImage(String path, String id) {
+        storeinCache(path,id);
+    }
 }

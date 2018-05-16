@@ -105,4 +105,9 @@ public class Photo {
         this.isfamily = isfamily;
     }
 
+    public String getPhotoPath(){
+        return "http://farm" + farm + ".static.flickr.com/"
+                + server + "/" + id + "_" + secret + "_m.jpg";
+    }
+
 }
