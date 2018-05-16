@@ -37,7 +37,7 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements AbsListView.OnScrollListener,GridAdapter.Callback {
+public class MainActivity extends AppCompatActivity implements AbsListView.OnScrollListener {
 
     String FlickrQuery_url = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
     String FlickrQuery_per_page = "&per_page=12";
@@ -74,7 +74,6 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
         });
         gridView.setOnScrollListener(this);
         gridAdapter=new GridAdapter(photo,MainActivity.this);
-        gridAdapter.setCallback(this);
         gridView.setAdapter(gridAdapter);
     }
 
@@ -119,6 +118,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                 Log.d(TAG, response);
                 isLoading=false;
                 imageResponse = new Gson().fromJson(response,ImageResponse.class);
+                storeImage();
                 photo.addAll(imageResponse.getPhotos().getPhoto());
                 page++;
                 gridAdapter.notifyDataSetChanged();
@@ -179,38 +179,44 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
         return cacheDir;
     }
 
-    void storeinCache(String path, String id){
-        URL wallpaperURL = null;
-        try {
-            wallpaperURL = new URL(path);
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
-        try {
-            URLConnection connection = wallpaperURL.openConnection();
-            InputStream inputStream = new BufferedInputStream(wallpaperURL.openStream(), 10240);
-            File cacheDir = getCacheFolder(MainActivity.this);
-            File cacheFile = new File(cacheDir, id+".jpg");
-            Log.e(TAG,"path "+cacheFile.getAbsolutePath());
-            FileOutputStream outputStream = new FileOutputStream(cacheFile);
 
-            byte buffer[] = new byte[1024];
-            int dataSize;
-            int loadedSize = 0;
-            while ((dataSize = inputStream.read(buffer)) != -1) {
-                loadedSize += dataSize;
-                outputStream.write(buffer, 0, dataSize);
+
+
+    public void storeImage() {
+
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < photo.size(); i++) {
+                    URL wallpaperURL = null;
+                    try {
+                        wallpaperURL = new URL(photo.get(i).getPhotoPath());
+                    } catch (MalformedURLException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        URLConnection connection = wallpaperURL.openConnection();
+                        InputStream inputStream = new BufferedInputStream(wallpaperURL.openStream(), 10240);
+                        File cacheDir = getCacheFolder(MainActivity.this);
+                        File cacheFile = new File(cacheDir, photo.get(i).getId()+".jpg");
+                        Log.e(TAG,"path "+cacheFile.getAbsolutePath());
+                        FileOutputStream outputStream = new FileOutputStream(cacheFile);
+
+                        byte buffer[] = new byte[1024];
+                        int dataSize;
+                        int loadedSize = 0;
+                        while ((dataSize = inputStream.read(buffer)) != -1) {
+                            loadedSize += dataSize;
+                            outputStream.write(buffer, 0, dataSize);
+                        }
+
+                        outputStream.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
-
-            outputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    @Override
-    public void storeImage(String path, String id) {
-        storeinCache(path,id);
+        }).start();
     }
 }
