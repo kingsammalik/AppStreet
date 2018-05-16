@@ -2,9 +2,9 @@ package com.samapps.appstreet;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -15,16 +15,12 @@ import android.widget.GridView;
 import android.widget.Toast;
 
 import com.android.volley.Request;
-import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
-import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
-
-import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -55,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
     GridAdapter gridAdapter;
     boolean isLoading=false;
     List<Photo> photo;
+    String tag;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
         (findViewById(R.id.search)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                tag=editText.getText().toString();
                 callFlickr();
 
             }
@@ -104,7 +102,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
     }
 
     void callFlickr(){
-        String url = FlickrQuery_url+FlickrQuery_per_page+FlickrQuery_nojsoncallback+FlickrQuery_page+page+FlickrQuery_format+FlickrQuery_tag+editText.getText().toString()+FlickrQuery_key;
+        String url = FlickrQuery_url+FlickrQuery_per_page+FlickrQuery_nojsoncallback+FlickrQuery_page+page+FlickrQuery_format+FlickrQuery_tag+tag+FlickrQuery_key;
 
         final ProgressDialog pDialog = new ProgressDialog(this);
         pDialog.setMessage("Loading...");
@@ -184,7 +182,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
 
     public void storeImage() {
 
-
+    final List<path> pathList=new ArrayList<>();
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -200,6 +198,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                         InputStream inputStream = new BufferedInputStream(wallpaperURL.openStream(), 10240);
                         File cacheDir = getCacheFolder(MainActivity.this);
                         File cacheFile = new File(cacheDir, photo.get(i).getId()+".jpg");
+                        pathList.add(new path(cacheFile.getAbsolutePath()));
                         Log.e(TAG,"path "+cacheFile.getAbsolutePath());
                         FileOutputStream outputStream = new FileOutputStream(cacheFile);
 
@@ -215,7 +214,18 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
+
+
+
                 }
+                List<Search> searchList = new ArrayList<>();
+                searchList.add(new Search(tag,pathList));
+                offLine offLineobj = new offLine(searchList);
+                //offLineobj.getSearchList().add(new Search(tag,pathList));
+                System.out.println("size "+offLineobj.getSearchList().size());
+                Gson gson = new Gson();
+                String json = gson.toJson(offLineobj);
+                System.out.println(json);
             }
         }).start();
     }

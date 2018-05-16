@@ -44,7 +44,7 @@ public class GridAdapter extends BaseAdapter {
 
     // create a new ImageView for each item referenced by the Adapter
     public View getView(int position, View convertView, ViewGroup parent) {
-        System.out.println(position);
+        //System.out.println(position);
         ImageView imageView;
         Photo photoobj = photo.get(position);
         if (convertView == null) {
