@@ -9,9 +9,7 @@ import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.os.Message;
 import android.support.v4.app.ActivityOptionsCompat;
-import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -31,6 +29,7 @@ import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -46,25 +45,26 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements AbsListView.OnScrollListener {
 
     private static final String MY_PREFS_NAME = "APPSTREET";
-    String FlickrQuery_url = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
-    String FlickrQuery_per_page = "&per_page=8";
-    String FlickrQuery_nojsoncallback = "&nojsoncallback=1";
-    String FlickrQuery_page = "&page=";
-    String FlickrQuery_format = "&format=json";
-    String FlickrQuery_tag = "&tags=";
-    String FlickrQuery_key = "&api_key=d8ac26169e4f789e882e0112e7cfce04";
+    private String FlickrQuery_url = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
+    private String FlickrQuery_per_page = "&per_page=8";
+    private String FlickrQuery_nojsoncallback = "&nojsoncallback=1";
+    private String FlickrQuery_page = "&page=";
+    private String FlickrQuery_format = "&format=json";
+    private String FlickrQuery_tag = "&tags=";
+    private String FlickrQuery_key = "&api_key=d8ac26169e4f789e882e0112e7cfce04";
 
-    GridView gridView;
-    EditText editText;
-    int page=1;
-    String TAG=MainActivity.class.getName();
-    ImageResponse imageResponse;
-    GridAdapter gridAdapter;
-    boolean isLoading=false;
-    List<Photo> photo;
-    String tag;
+    private GridView gridView;
+    private EditText editText;
+    private int page=1;
+    private String TAG=MainActivity.class.getName();
+    private ImageResponse imageResponse;
+    private GridAdapter gridAdapter;
+    private boolean isLoading=false;
+    private List<Photo> photo;
+    private String tag;
     private int lastPosition=0;
-    Thread thread;
+    private Thread thread;
+    private Search search1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,13 +74,13 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
         gridView = findViewById(R.id.gridview);
         gridView.setNumColumns(2);
         editText = findViewById(R.id.edit);
-
+        BaseModel.setPhotos(photo);
         (findViewById(R.id.search)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 tag=editText.getText().toString().toLowerCase();
                 if (isNetworkAvailable()){
-                    gridAdapter=new GridAdapter(photo, new Search(), true, MainActivity.this);
+                    gridAdapter=new GridAdapter(BaseModel.getPhotos(), new Search(), true, MainActivity.this);
                     gridView.setAdapter(gridAdapter);
                     callFlickr();
                 }
@@ -90,14 +90,14 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                         SharedPreferences prefs = getSharedPreferences(MY_PREFS_NAME, MODE_PRIVATE);
                         String offlinejson = prefs.getString("OFFLINE", null);
                         offLine offLineobj = new Gson().fromJson(offlinejson,offLine.class);
-                        Search search1= new Search();
+                         search1= new Search();
                         for (Search search:offLineobj.getSearchList()){
                             if (tag.equals(search.getTag())){
                                 search1 = search;
                                 break;
                             }
                         }
-                        gridAdapter=new GridAdapter(photo,search1,false ,MainActivity.this);
+                        gridAdapter=new GridAdapter(BaseModel.getPhotos(),search1,false ,MainActivity.this);
                         gridView.setAdapter(gridAdapter);
                          BaseModel.setIsOnline(false);
                          BaseModel.setSearch(search1);
@@ -111,6 +111,26 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
 
             }
         });
+
+        if(savedInstanceState != null) {
+           if (isNetworkAvailable()){
+               GsonBuilder gsonBuilder  = new GsonBuilder();
+// Allowing the serialization of static fields
+
+               gsonBuilder.excludeFieldsWithModifiers(java.lang.reflect.Modifier.TRANSIENT);
+               // Creates a Gson instance based on the current configuration
+               Gson gson = gsonBuilder.create();
+               BaseModel baseModel = gson.fromJson(savedInstanceState.getString("json"),BaseModel.class);
+               gridAdapter = new GridAdapter(BaseModel.getPhotos(),new Search(),true,MainActivity.this);
+           }
+           else {
+               search1 = new Gson().fromJson(savedInstanceState.getString("json"),Search.class);
+               gridAdapter = new GridAdapter(photo,search1,false,MainActivity.this);
+           }
+
+            gridView.setAdapter(gridAdapter);
+        }
+
         gridView.setOnScrollListener(this);
 
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -120,12 +140,42 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                 intent.putExtra("position",position);
                 ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(
                         MainActivity.this,
-                        ((ImageView)view),
+                        (view),
                         String.valueOf(position));
                 startActivity(intent, options.toBundle());
             }
         });
 
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        String json;
+        if (isNetworkAvailable()){
+            GsonBuilder gsonBuilder  = new GsonBuilder();
+// Allowing the serialization of static fields
+
+            gsonBuilder.excludeFieldsWithModifiers(java.lang.reflect.Modifier.TRANSIENT);
+            // Creates a Gson instance based on the current configuration
+            Gson gson = gsonBuilder.create();
+            json = gson.toJson(new BaseModel());
+            try {
+                thread.interrupt();
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        else json = new Gson().toJson(search1);
+
+        Log.e("tag","json "+json);
+        outState.putString("json",json);
     }
 
 
@@ -138,6 +188,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
     };
 
     private boolean isNetworkAvailable() {
+
         ConnectivityManager connectivityManager
                 = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
@@ -187,12 +238,13 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                     isLoading=false;
                     imageResponse = new Gson().fromJson(response,ImageResponse.class);
                     BaseModel.setIsOnline(true);
+                    photo.addAll(imageResponse.getPhotos().getPhoto());
+                    BaseModel.setPhotos(photo);
                     if (thread != null)
                     thread.interrupt();
                     storeImage();
                     thread.start();
-                    photo.addAll(imageResponse.getPhotos().getPhoto());
-                    BaseModel.setPhotos(photo);
+
                     page++;
                     gridAdapter.notifyDataSetChanged();
                     //Log.e(TAG, imageResponse.getPhotos().getPhoto().get(0).getTitle());
@@ -209,7 +261,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
 
             @Override
             public void onErrorResponse(VolleyError error) {
-                VolleyLog.d(TAG, "Error: " + error.getStackTrace().toString());
+                VolleyLog.d(TAG, "Error: " + error.getMessage());
                 pDialog.cancel();
             }
         });
@@ -229,7 +281,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
             Log.e(TAG,"first item "+firstVisibleItem+" visible count "+visibleItemCount+" total "+totalItemCount);
             if (!isLoading &&  (lastVisibleItem == totalItemCount)) {
                 isLoading = true;
-                //callFlickr();
+                callFlickr();
                 //load more items--
                 Log.e(TAG,"loading items "+page);
 
@@ -260,14 +312,14 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
     public void storeImage() {
 
     final List<path> pathList=new ArrayList<>();
-    final int size=photo.size();
+    final int size=BaseModel.getPhotos().size();
         thread= new Thread(new Runnable() {
             @Override
             public void run() {
                 for (int i = 0; i < size; i++) {
                     URL wallpaperURL = null;
                     try {
-                        wallpaperURL = new URL(photo.get(i).getPhotoPath());
+                        wallpaperURL = new URL(BaseModel.getPhotos().get(i).getPhotoPath());
                     } catch (MalformedURLException e) {
                         e.printStackTrace();
                     }
@@ -275,7 +327,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                         URLConnection connection = wallpaperURL.openConnection();
                         InputStream inputStream = new BufferedInputStream(wallpaperURL.openStream(), 10240);
                         File cacheDir = getCacheFolder(MainActivity.this);
-                        File cacheFile = new File(cacheDir, photo.get(i).getId()+".jpg");
+                        File cacheFile = new File(cacheDir, BaseModel.getPhotos().get(i).getId()+".jpg");
                         pathList.add(new path(cacheFile.getAbsolutePath()));
                         Log.e(TAG,"path "+cacheFile.getAbsolutePath());
                         FileOutputStream outputStream = new FileOutputStream(cacheFile);

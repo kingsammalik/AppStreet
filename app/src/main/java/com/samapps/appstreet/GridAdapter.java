@@ -1,7 +1,6 @@
 package com.samapps.appstreet;
 
 import android.content.Context;
-import android.support.v4.view.ViewCompat;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -15,18 +14,9 @@ import java.util.List;
 public class GridAdapter extends BaseAdapter {
 
     private Context mContext;
-    List<Photo> photo;
-    private Callback callback;
+    private List<Photo> photo;
     private Search search;
     private boolean isOnline;
-
-    public void setCallback(Callback callback) {
-        this.callback = callback;
-    }
-
-    public interface Callback{
-        void storeImage(String path,String id);
-    }
 
     // Constructor
     public GridAdapter(List<Photo> photo, Search search, boolean isOnline, Context c) {
@@ -59,8 +49,6 @@ public class GridAdapter extends BaseAdapter {
 
         if (convertView == null) {
             imageView = new ImageView(mContext);
-            //imageView.setLayoutParams(new GridView.LayoutParams(85, 85));
-           // imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             imageView.setPadding(8, 8, 8, 8);
         }
         else
