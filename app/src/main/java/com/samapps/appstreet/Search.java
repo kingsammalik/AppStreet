@@ -7,6 +7,9 @@ public class Search {
     private String tag;
     private List<path> pathList;
 
+    public Search() {
+    }
+
     public Search(String tag, List<path> pathList) {
         this.tag = tag;
         this.pathList = pathList;

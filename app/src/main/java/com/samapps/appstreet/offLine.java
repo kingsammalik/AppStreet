@@ -7,6 +7,9 @@ public class offLine {
 
     private List<Search> searchList;
 
+    public offLine() {
+    }
+
     public offLine(List<Search> searchList) {
         this.searchList = searchList;
     }

@@ -2,16 +2,26 @@ package com.samapps.appstreet;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
+import android.support.v4.app.ActivityOptionsCompat;
+import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AbsListView;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.GridView;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.android.volley.Request;
@@ -35,8 +45,9 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements AbsListView.OnScrollListener {
 
+    private static final String MY_PREFS_NAME = "APPSTREET";
     String FlickrQuery_url = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
-    String FlickrQuery_per_page = "&per_page=12";
+    String FlickrQuery_per_page = "&per_page=8";
     String FlickrQuery_nojsoncallback = "&nojsoncallback=1";
     String FlickrQuery_page = "&page=";
     String FlickrQuery_format = "&format=json";
@@ -52,6 +63,8 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
     boolean isLoading=false;
     List<Photo> photo;
     String tag;
+    private int lastPosition=0;
+    Thread thread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,14 +78,70 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
         (findViewById(R.id.search)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                tag=editText.getText().toString();
-                callFlickr();
+                tag=editText.getText().toString().toLowerCase();
+                if (isNetworkAvailable()){
+                    gridAdapter=new GridAdapter(photo, new Search(), true, MainActivity.this);
+                    gridView.setAdapter(gridAdapter);
+                    callFlickr();
+                }
+
+                else{
+                    try {
+                        SharedPreferences prefs = getSharedPreferences(MY_PREFS_NAME, MODE_PRIVATE);
+                        String offlinejson = prefs.getString("OFFLINE", null);
+                        offLine offLineobj = new Gson().fromJson(offlinejson,offLine.class);
+                        Search search1= new Search();
+                        for (Search search:offLineobj.getSearchList()){
+                            if (tag.equals(search.getTag())){
+                                search1 = search;
+                                break;
+                            }
+                        }
+                        gridAdapter=new GridAdapter(photo,search1,false ,MainActivity.this);
+                        gridView.setAdapter(gridAdapter);
+                         BaseModel.setIsOnline(false);
+                         BaseModel.setSearch(search1);
+                        handler_doc.sendEmptyMessage(0);
+                    }
+                    catch (Exception e){
+                        e.printStackTrace();
+                    }
+
+                }
 
             }
         });
         gridView.setOnScrollListener(this);
-        gridAdapter=new GridAdapter(photo,MainActivity.this);
-        gridView.setAdapter(gridAdapter);
+
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent = new Intent(MainActivity.this, SingleImage.class);
+                intent.putExtra("position",position);
+                ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(
+                        MainActivity.this,
+                        ((ImageView)view),
+                        String.valueOf(position));
+                startActivity(intent, options.toBundle());
+            }
+        });
+
+    }
+
+
+
+    private  Handler handler_doc = new Handler() {
+
+        public void handleMessage(android.os.Message msg) {
+            gridAdapter.notifyDataSetChanged();
+        }
+    };
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
     @Override
@@ -113,15 +182,26 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
 
             @Override
             public void onResponse(String response) {
-                Log.d(TAG, response);
-                isLoading=false;
-                imageResponse = new Gson().fromJson(response,ImageResponse.class);
-                storeImage();
-                photo.addAll(imageResponse.getPhotos().getPhoto());
-                page++;
-                gridAdapter.notifyDataSetChanged();
-                //Log.e(TAG, imageResponse.getPhotos().getPhoto().get(0).getTitle());
-                pDialog.hide();
+                try {
+                    Log.d(TAG, response);
+                    isLoading=false;
+                    imageResponse = new Gson().fromJson(response,ImageResponse.class);
+                    BaseModel.setIsOnline(true);
+                    if (thread != null)
+                    thread.interrupt();
+                    storeImage();
+                    thread.start();
+                    photo.addAll(imageResponse.getPhotos().getPhoto());
+                    BaseModel.setPhotos(photo);
+                    page++;
+                    gridAdapter.notifyDataSetChanged();
+                    //Log.e(TAG, imageResponse.getPhotos().getPhoto().get(0).getTitle());
+                    pDialog.cancel();
+                }
+                catch (Exception e){
+                    e.printStackTrace();
+                }
+
 
 
             }
@@ -129,14 +209,11 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
 
             @Override
             public void onErrorResponse(VolleyError error) {
-                VolleyLog.d(TAG, "Error: " + error.getMessage());
-                pDialog.hide();
+                VolleyLog.d(TAG, "Error: " + error.getStackTrace().toString());
+                pDialog.cancel();
             }
         });
 
-
-
-// Adding request to request queue
         Volley.newRequestQueue(this).add(strReq);
     }
 
@@ -183,10 +260,11 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
     public void storeImage() {
 
     final List<path> pathList=new ArrayList<>();
-        new Thread(new Runnable() {
+    final int size=photo.size();
+        thread= new Thread(new Runnable() {
             @Override
             public void run() {
-                for (int i = 0; i < photo.size(); i++) {
+                for (int i = 0; i < size; i++) {
                     URL wallpaperURL = null;
                     try {
                         wallpaperURL = new URL(photo.get(i).getPhotoPath());
@@ -218,6 +296,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
 
 
                 }
+                lastPosition=size;
                 List<Search> searchList = new ArrayList<>();
                 searchList.add(new Search(tag,pathList));
                 offLine offLineobj = new offLine(searchList);
@@ -226,7 +305,12 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                 Gson gson = new Gson();
                 String json = gson.toJson(offLineobj);
                 System.out.println(json);
+                SharedPreferences.Editor editor = getSharedPreferences(MY_PREFS_NAME, MODE_PRIVATE).edit();
+                editor.putString("OFFLINE", json);
+                editor.apply();
             }
-        }).start();
+        });
+
+
     }
 }
