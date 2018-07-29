@@ -6,6 +6,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 
+import com.squareup.picasso.MemoryPolicy;
 import com.squareup.picasso.Picasso;
 
 import java.io.File;
@@ -17,13 +18,15 @@ public class GridAdapter extends BaseAdapter {
     private List<Photo> photo;
     private Search search;
     private boolean isOnline;
+    private String keyword;
 
     // Constructor
-    public GridAdapter(List<Photo> photo, Search search, boolean isOnline, Context c) {
+    public GridAdapter(List<Photo> photo, Search search, boolean isOnline, Context c, String keyword) {
         mContext = c;
         this.photo=photo;
         this.search=search;
         this.isOnline=isOnline;
+        this.keyword=keyword;
     }
 
     public int getCount() {
@@ -58,7 +61,8 @@ public class GridAdapter extends BaseAdapter {
         imageView.setTransitionName(String.valueOf(position));
         if (isOnline){
             Picasso.get().load(photo.get(position).getPhotoPath()) .resize(250, 250)
-                    .centerCrop().into(imageView);
+                    .centerCrop() .memoryPolicy(MemoryPolicy.NO_CACHE, MemoryPolicy.NO_STORE).into(imageView,new SaveImage(mContext,
+                    keyword,photo.get(position).getPhotoPath(),photo.get(position).getId()));
         }
         else {
             Picasso.get().load(new File(search.getPathList().get(position).getPath())) .resize(250, 250)

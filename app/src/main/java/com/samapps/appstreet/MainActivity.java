@@ -30,6 +30,7 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.squareup.picasso.Picasso;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -80,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
             public void onClick(View view) {
                 tag=editText.getText().toString().toLowerCase();
                 if (isNetworkAvailable()){
-                    gridAdapter=new GridAdapter(BaseModel.getPhotos(), new Search(), true, MainActivity.this);
+                    gridAdapter=new GridAdapter(BaseModel.getPhotos(), new Search(), true, MainActivity.this,tag);
                     gridView.setAdapter(gridAdapter);
                     callFlickr();
                 }
@@ -97,7 +98,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                                 break;
                             }
                         }
-                        gridAdapter=new GridAdapter(BaseModel.getPhotos(),search1,false ,MainActivity.this);
+                        gridAdapter=new GridAdapter(BaseModel.getPhotos(),search1,false ,MainActivity.this,tag);
                         gridView.setAdapter(gridAdapter);
                          BaseModel.setIsOnline(false);
                          BaseModel.setSearch(search1);
@@ -121,11 +122,11 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                // Creates a Gson instance based on the current configuration
                Gson gson = gsonBuilder.create();
                BaseModel baseModel = gson.fromJson(savedInstanceState.getString("json"),BaseModel.class);
-               gridAdapter = new GridAdapter(BaseModel.getPhotos(),new Search(),true,MainActivity.this);
+               gridAdapter = new GridAdapter(BaseModel.getPhotos(),new Search(),true,MainActivity.this,savedInstanceState.getString("tag"));
            }
            else {
                search1 = new Gson().fromJson(savedInstanceState.getString("json"),Search.class);
-               gridAdapter = new GridAdapter(photo,search1,false,MainActivity.this);
+               gridAdapter = new GridAdapter(photo,search1,false,MainActivity.this,savedInstanceState.getString("tag"));
            }
 
             gridView.setAdapter(gridAdapter);
@@ -176,6 +177,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
 
         Log.e("tag","json "+json);
         outState.putString("json",json);
+        outState.putString("tag",tag);
     }
 
 
@@ -243,7 +245,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                     if (thread != null)
                     thread.interrupt();
                     storeImage();
-                    thread.start();
+                    //thread.start();
 
                     page++;
                     gridAdapter.notifyDataSetChanged();
