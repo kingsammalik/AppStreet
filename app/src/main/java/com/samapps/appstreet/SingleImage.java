@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
+import com.samapps.appstreet.newdev.Base;
 import com.squareup.picasso.Picasso;
 
 import java.io.File;
@@ -41,7 +42,7 @@ public class SingleImage extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_single_image);
-        getWindow().setSharedElementEnterTransition(TransitionInflater.from(this).inflateTransition(R.transition.shared_element_transation));
+        //getWindow().setSharedElementEnterTransition(TransitionInflater.from(this).inflateTransition(R.transition.shared_element_transation));
 
 
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -80,13 +81,13 @@ public class SingleImage extends AppCompatActivity {
 
             ImageView imageView =  itemView.findViewById(R.id.imageview);
             imageView.setTransitionName(String.valueOf(position));
-            if (BaseModel.isIsOnline()){
+           /* if (BaseModel.isIsOnline()){
                 Picasso.get().load(BaseModel.getPhotos().get(position).getPhotoPath()).noFade().into(imageView);
             }
             else {
                 Picasso.get().load(new File(BaseModel.getSearch().getPathList().get(position).getPath())).noFade().into(imageView);
-            }
-            //Picasso.get().load(BaseModel.getPhotos().get(position).getPhotoPath()).noFade().networkPolicy(NetworkPolicy.NO_CACHE).memoryPolicy(MemoryPolicy.NO_CACHE, MemoryPolicy.NO_STORE) .into(imageView);
+            }*/
+            Picasso.get().load(Base.getPathList().get(position).getPath()).into(imageView);
             container.addView(itemView);
 
 
@@ -96,12 +97,7 @@ public class SingleImage extends AppCompatActivity {
 
         @Override
         public int getCount() {
-            if (BaseModel.isIsOnline()){
-                return BaseModel.getPhotos().size();
-            }
-            else {
-                return BaseModel.getSearch().getPathList().size();
-            }
+            return Base.getPathList().size();
         }
 
         @Override

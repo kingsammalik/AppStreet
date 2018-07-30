@@ -30,6 +30,8 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.samapps.appstreet.newdev.Base;
+import com.samapps.appstreet.newdev.UrlModel;
 import com.squareup.picasso.Picasso;
 
 import java.io.BufferedInputStream;
@@ -66,11 +68,20 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
     private int lastPosition=0;
     private Thread thread;
     private Search search1;
+    boolean isOnline = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.e("lifecycle","onCreate invoked");
+        SharedPreferences prefs = getSharedPreferences(MY_PREFS_NAME, MODE_PRIVATE);
+        String offlinejson = prefs.getString("OFFLINE", null);
+        System.out.println("offline: "+offlinejson);
+        UrlModel offLineobj = new Gson().fromJson(offlinejson,UrlModel.class);
+        if (offlinejson!=null)
+        Base.setUrlModel(offLineobj);
+        else Base.setUrlModel(new UrlModel());
         photo = new ArrayList<>();
         gridView = findViewById(R.id.gridview);
         gridView.setNumColumns(2);
@@ -81,6 +92,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
             public void onClick(View view) {
                 tag=editText.getText().toString().toLowerCase();
                 if (isNetworkAvailable()){
+                    isOnline = true;
                     gridAdapter=new GridAdapter(BaseModel.getPhotos(), new Search(), true, MainActivity.this,tag);
                     gridView.setAdapter(gridAdapter);
                     callFlickr();
@@ -88,7 +100,7 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
 
                 else{
                     try {
-                        SharedPreferences prefs = getSharedPreferences(MY_PREFS_NAME, MODE_PRIVATE);
+                        /*SharedPreferences prefs = getSharedPreferences(MY_PREFS_NAME, MODE_PRIVATE);
                         String offlinejson = prefs.getString("OFFLINE", null);
                         offLine offLineobj = new Gson().fromJson(offlinejson,offLine.class);
                          search1= new Search();
@@ -97,8 +109,14 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                                 search1 = search;
                                 break;
                             }
+                        }*/
+                        for (Search search:Base.getUrlModel().getSearchList()){
+                            if (tag.equals(search.getTag())){
+                                gridAdapter=new GridAdapter(MainActivity.this,search.getPathList(),false);
+                                break;
+                            }
                         }
-                        gridAdapter=new GridAdapter(BaseModel.getPhotos(),search1,false ,MainActivity.this,tag);
+                        //gridAdapter=new GridAdapter(BaseModel.getPhotos(),search1,false ,MainActivity.this,tag);
                         gridView.setAdapter(gridAdapter);
                          BaseModel.setIsOnline(false);
                          BaseModel.setSearch(search1);
@@ -137,6 +155,12 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                for (Search search:Base.getUrlModel().getSearchList()){
+                    if (tag.equals(search.getTag())){
+                        Base.setPathList(search.getPathList());
+                        break;
+                    }
+                }
                 Intent intent = new Intent(MainActivity.this, SingleImage.class);
                 intent.putExtra("position",position);
                 ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(
@@ -185,7 +209,13 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
     private  Handler handler_doc = new Handler() {
 
         public void handleMessage(android.os.Message msg) {
-            gridAdapter.notifyDataSetChanged();
+            try {
+                gridAdapter.notifyDataSetChanged();
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+
         }
     };
 
@@ -242,11 +272,11 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                     BaseModel.setIsOnline(true);
                     photo.addAll(imageResponse.getPhotos().getPhoto());
                     BaseModel.setPhotos(photo);
-                    if (thread != null)
-                    thread.interrupt();
-                    storeImage();
+                    //if (thread != null)
+                    //thread.interrupt();
+                    //storeImage();
                     //thread.start();
-
+                    storeImageUrl(tag,imageResponse);
                     page++;
                     gridAdapter.notifyDataSetChanged();
                     //Log.e(TAG, imageResponse.getPhotos().getPhoto().get(0).getTitle());
@@ -269,6 +299,29 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
         });
 
         Volley.newRequestQueue(this).add(strReq);
+    }
+
+    private void storeImageUrl(String keyword, ImageResponse url) {
+        if (isOnline){
+            for (Photo photo : url.getPhotos().getPhoto()){
+                boolean isfound = false;
+                if (!Base.getUrlModel().getSearchList().isEmpty()){
+                    for (Search search:Base.getUrlModel().getSearchList()){
+                        if (keyword.equals(search.getTag())){
+                            search.getPathList().add(new path(photo.getPhotoPath()));
+                            isfound = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!isfound){
+                    List<path> list = new ArrayList<path>();
+                    list.add(new path(photo.getPhotoPath()));
+                    Base.getUrlModel().getSearchList().add(new Search(keyword,list));
+                }
+            }
+        }
     }
 
     @Override
@@ -367,4 +420,46 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
 
 
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.e("lifecycle","onResume invoked");
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.e("lifecycle","onStart invoked");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.e("lifecycle","onPause invoked");
+    }
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.e("lifecycle","onStop invoked");
+    }
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        Log.e("lifecycle","onRestart invoked");
+    }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.e("lifecycle","onDestroy invoked");
+        Gson gson = new Gson();
+        String json = gson.toJson(Base.getUrlModel());
+        System.out.println(json);
+        SharedPreferences.Editor editor = getSharedPreferences(MY_PREFS_NAME, MODE_PRIVATE).edit();
+        editor.putString("OFFLINE", json);
+        editor.apply();
+    }
+
+
+
 }
