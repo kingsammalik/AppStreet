@@ -1,6 +1,9 @@
 package com.samapps.appstreet;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,7 +11,9 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
+import java.io.IOException;
 import java.util.List;
 
 public class GridAdapter extends BaseAdapter {
@@ -54,7 +59,7 @@ public class GridAdapter extends BaseAdapter {
     // create a new ImageView for each item referenced by the Adapter
     public View getView(int position, View convertView, ViewGroup parent) {
         //System.out.println(position);
-        ImageView imageView;
+        final ImageView imageView;
 
         if (convertView == null) {
            // imageView = new ImageView(mContext);
@@ -69,15 +74,33 @@ public class GridAdapter extends BaseAdapter {
         imageView = convertView.findViewById(R.id.imageview);
         imageView.setTransitionName("T"+String.valueOf(position));
         if (isOnline){
-            Picasso.get().load(photo.get(position).getPhotoPath()).resize(300,300).centerCrop().into(imageView);
+
+            saveImage(position);
+
             //Glide.with(mContext).load(photo.get(position).getPhotoPath()).centerCrop().into(imageView);
         }
         else {
-            Picasso.get().load(searchList.get(position).getPath()).resize(300,300).into(imageView);
+            Picasso.get().load(searchList.get(position).getPath()).into(imageView);
             //Glide.with(mContext).load(searchList.get(position).getPath()).into(imageView);
         }
 
         return convertView;
+    }
+
+    private void saveImage(final int position) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                try {
+                    Bitmap bitmap = Picasso.get().load(photo.get(position).getPhotoPath()).get();
+                    Log.e("tag","size "+bitmap.getHeight()+" * "+bitmap.getWidth());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }).start();
     }
     /*private void prepareTransitions() {
         ((Activity)mContext).getWindow().setExitTransition(TransitionInflater.from(getContext())
@@ -101,5 +124,27 @@ public class GridAdapter extends BaseAdapter {
                     }
                 });
     }*/
+
+
+    private static Bitmap resize(Bitmap image, int maxWidth, int maxHeight) {
+        if (maxHeight > 0 && maxWidth > 0) {
+            int width = image.getWidth();
+            int height = image.getHeight();
+            float ratioBitmap = (float) width / (float) height;
+            float ratioMax = (float) maxWidth / (float) maxHeight;
+
+            int finalWidth = maxWidth;
+            int finalHeight = maxHeight;
+            if (ratioMax > ratioBitmap) {
+                finalWidth = (int) ((float)maxHeight * ratioBitmap);
+            } else {
+                finalHeight = (int) ((float)maxWidth / ratioBitmap);
+            }
+            image = Bitmap.createScaledBitmap(image, finalWidth, finalHeight, true);
+            return image;
+        } else {
+            return image;
+        }
+    }
 
 }

@@ -1,6 +1,8 @@
 package com.samapps.appstreet;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -9,6 +11,7 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.transition.TransitionInflater;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +20,7 @@ import android.widget.LinearLayout;
 
 import com.samapps.appstreet.newdev.Base;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
 import java.io.File;
 
@@ -79,7 +83,7 @@ public class SingleImage extends AppCompatActivity {
         public Object instantiateItem(@NonNull ViewGroup container, int position) {
             View itemView = layoutInflater.inflate(R.layout.fragment_single_image, container, false);
 
-            ImageView imageView =  itemView.findViewById(R.id.imageview);
+            final ImageView imageView =  itemView.findViewById(R.id.imageview);
             imageView.setTransitionName("T"+String.valueOf(position));
            /* if (BaseModel.isIsOnline()){
                 Picasso.get().load(BaseModel.getPhotos().get(position).getPhotoPath()).noFade().into(imageView);
@@ -87,7 +91,23 @@ public class SingleImage extends AppCompatActivity {
             else {
                 Picasso.get().load(new File(BaseModel.getSearch().getPathList().get(position).getPath())).noFade().into(imageView);
             }*/
-            Picasso.get().load(Base.getPathList().get(position).getPath()).into(imageView);
+            Picasso.get().load(Base.getPathList().get(position).getPath()).into(new Target() {
+                @Override
+                public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                    Log.e("tag","single size "+bitmap.getHeight()+" * "+bitmap.getWidth());
+                    imageView.setImageBitmap(bitmap);
+                }
+
+                @Override
+                public void onBitmapFailed(Exception e, Drawable errorDrawable) {
+
+                }
+
+                @Override
+                public void onPrepareLoad(Drawable placeHolderDrawable) {
+
+                }
+            });
             //Glide.with(SingleImage.this).load(Base.getPathList().get(position).getPath()).into(imageView);
             container.addView(itemView);
 
