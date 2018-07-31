@@ -332,16 +332,18 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
 
     @Override
     public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-        if (totalItemCount > 0) {
-            int lastVisibleItem = firstVisibleItem + visibleItemCount;
-            Log.e(TAG,"first item "+firstVisibleItem+" visible count "+visibleItemCount+" total "+totalItemCount);
-            if (!isLoading &&  (lastVisibleItem == totalItemCount)) {
-                isLoading = true;
-                callFlickr();
-                //load more items--
-                Log.e(TAG,"loading items "+page);
+        if (isOnline){
+            if (totalItemCount > 0) {
+                int lastVisibleItem = firstVisibleItem + visibleItemCount;
+                Log.e(TAG,"first item "+firstVisibleItem+" visible count "+visibleItemCount+" total "+totalItemCount);
+                if (!isLoading &&  (lastVisibleItem == totalItemCount)) {
+                    isLoading = true;
+                    callFlickr();
+                    //load more items--
+                    Log.e(TAG,"loading items "+page);
 
-                //isLoading=false;
+                    //isLoading=false;
+                }
             }
         }
     }

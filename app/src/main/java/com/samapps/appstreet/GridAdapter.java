@@ -1,33 +1,15 @@
 package com.samapps.appstreet;
 
-import android.app.Activity;
-import android.app.SharedElementCallback;
 import android.content.Context;
-import android.support.transition.ChangeBounds;
-import android.support.transition.ChangeClipBounds;
-import android.support.transition.ChangeImageTransform;
-import android.support.transition.ChangeTransform;
-import android.support.transition.Explode;
-import android.support.transition.Fade;
-import android.support.transition.Slide;
-import android.support.transition.TransitionSet;
-import android.support.v7.widget.RecyclerView;
-import android.transition.TransitionInflater;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 
-import com.squareup.picasso.MemoryPolicy;
 import com.squareup.picasso.Picasso;
 
-import java.io.File;
 import java.util.List;
-import java.util.Map;
-
-import static java.security.AccessController.getContext;
 
 public class GridAdapter extends BaseAdapter {
 
@@ -87,10 +69,12 @@ public class GridAdapter extends BaseAdapter {
         imageView = convertView.findViewById(R.id.imageview);
         imageView.setTransitionName("T"+String.valueOf(position));
         if (isOnline){
-            Picasso.get().load(photo.get(position).getPhotoPath()).resize(250,250).centerCrop().into(imageView);
+            Picasso.get().load(photo.get(position).getPhotoPath()).resize(300,300).centerCrop().into(imageView);
+            //Glide.with(mContext).load(photo.get(position).getPhotoPath()).centerCrop().into(imageView);
         }
         else {
-            Picasso.get().load(searchList.get(position).getPath()).into(imageView);
+            Picasso.get().load(searchList.get(position).getPath()).resize(300,300).into(imageView);
+            //Glide.with(mContext).load(searchList.get(position).getPath()).into(imageView);
         }
 
         return convertView;

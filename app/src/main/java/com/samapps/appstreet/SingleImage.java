@@ -88,6 +88,7 @@ public class SingleImage extends AppCompatActivity {
                 Picasso.get().load(new File(BaseModel.getSearch().getPathList().get(position).getPath())).noFade().into(imageView);
             }*/
             Picasso.get().load(Base.getPathList().get(position).getPath()).into(imageView);
+            //Glide.with(SingleImage.this).load(Base.getPathList().get(position).getPath()).into(imageView);
             container.addView(itemView);
 
 
