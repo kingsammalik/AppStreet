@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.v4.app.ActivityOptionsCompat;
+import android.support.v4.util.Pair;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -165,8 +166,8 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                 intent.putExtra("position",position);
                 ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(
                         MainActivity.this,
-                        (view),
-                        String.valueOf(position));
+                        (view).findViewById(R.id.imageview),
+                        "T"+String.valueOf(position));
                 startActivity(intent, options.toBundle());
             }
         });

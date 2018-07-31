@@ -1,5 +1,7 @@
 package com.samapps.appstreet;
 
+import android.app.Activity;
+import android.app.SharedElementCallback;
 import android.content.Context;
 import android.support.transition.ChangeBounds;
 import android.support.transition.ChangeClipBounds;
@@ -9,6 +11,8 @@ import android.support.transition.Explode;
 import android.support.transition.Fade;
 import android.support.transition.Slide;
 import android.support.transition.TransitionSet;
+import android.support.v7.widget.RecyclerView;
+import android.transition.TransitionInflater;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,6 +25,9 @@ import com.squareup.picasso.Picasso;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
+
+import static java.security.AccessController.getContext;
 
 public class GridAdapter extends BaseAdapter {
 
@@ -78,18 +85,37 @@ public class GridAdapter extends BaseAdapter {
            // imageView = (ImageView) convertView;
         }
         imageView = convertView.findViewById(R.id.imageview);
-        imageView.setTransitionName(String.valueOf(position));
+        imageView.setTransitionName("T"+String.valueOf(position));
         if (isOnline){
-            Picasso.get().load(photo.get(position).getPhotoPath()).fit().into(imageView);
+            Picasso.get().load(photo.get(position).getPhotoPath()).resize(250,250).centerCrop().into(imageView);
         }
         else {
             Picasso.get().load(searchList.get(position).getPath()).into(imageView);
         }
 
-
-
         return convertView;
     }
+    /*private void prepareTransitions() {
+        ((Activity)mContext).getWindow().setExitTransition(TransitionInflater.from(getContext())
+                .inflateTransition(R.transition.shared_element_transation));
 
+        // A similar mapping is set at the ImagePagerFragment with a setEnterSharedElementCallback.
+        ((Activity)mContext).setExitSharedElementCallback(
+                new SharedElementCallback() {
+                    @Override
+                    public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
+                        // Locate the ViewHolder for the clicked position.
+                       *//* RecyclerView.ViewHolder selectedViewHolder = recyclerView
+                                .findViewHolderForAdapterPosition(MainActivity.currentPosition);
+                        if (selectedViewHolder == null || selectedViewHolder.itemView == null) {
+                            return;
+                        }*//*
+
+                        // Map the first shared element name to the child ImageView.
+                        sharedElements
+                                .put(names.get(0), getView().findViewById(R.id.card_image));
+                    }
+                });
+    }*/
 
 }
