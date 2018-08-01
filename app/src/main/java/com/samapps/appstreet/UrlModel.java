@@ -1,6 +1,5 @@
-package com.samapps.appstreet.newdev;
+package com.samapps.appstreet;
 
-import com.samapps.appstreet.Search;
 
 import java.util.ArrayList;
 import java.util.List;

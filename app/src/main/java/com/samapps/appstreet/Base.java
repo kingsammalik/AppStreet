@@ -1,6 +1,4 @@
-package com.samapps.appstreet.newdev;
-
-import com.samapps.appstreet.path;
+package com.samapps.appstreet;
 
 import java.util.List;
 
