@@ -93,8 +93,13 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                         }
                         //gridAdapter=new GridAdapter(BaseModel.getPhotos(),search1,false ,MainActivity.this,tag);
                         gridView.setAdapter(gridAdapter);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                gridAdapter.notifyDataSetChanged();
+                            }
+                        });
 
-                        handler_doc.sendEmptyMessage(0);
                     }
                     catch (Exception e){
                         e.printStackTrace();
@@ -121,8 +126,13 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
                 }
                 //gridAdapter=new GridAdapter(BaseModel.getPhotos(),search1,false ,MainActivity.this,tag);
                 gridView.setAdapter(gridAdapter);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        gridAdapter.notifyDataSetChanged();
+                    }
+                });
 
-                handler_doc.sendEmptyMessage(0);
             }
 
         }
@@ -164,20 +174,6 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
         outState.putInt("page",page);
     }
 
-
-
-    private  Handler handler_doc = new Handler() {
-
-        public void handleMessage(android.os.Message msg) {
-            try {
-                gridAdapter.notifyDataSetChanged();
-            }
-            catch (Exception e){
-                e.printStackTrace();
-            }
-
-        }
-    };
 
     private boolean isNetworkAvailable() {
 
